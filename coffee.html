@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buy me a coffee</title>
+<style>
+  :root { --ink:#1a1a1a; --soft:#8a8a8a; --blue:#1f4fff; --dot:#d6d6d6; --icon:96px; }
+  * { box-sizing:border-box; margin:0; }
+  [hidden] { display:none !important; }
+  body {
+    font-family: Georgia, "Times New Roman", serif; color:var(--ink); background:#fff;
+    background-image: radial-gradient(circle, var(--dot) 1.4px, transparent 1.6px);
+    background-size: 40px 40px;
+    min-height:100vh; padding: 48px 24px 120px;
+  }
+  button { font:inherit; color:inherit; background:none; border:0; cursor:pointer; }
+
+  /* soft "go back" */
+  .soft { color:var(--soft); font-size:15px; text-decoration:none; transition:color .15s; }
+  .soft:hover { color:var(--ink); }
+
+  main { max-width:760px; margin:0 auto; }
+  h1 { font-weight:400; font-size:32px; margin:72px 0 96px; text-align:center; }
+
+  .tiers { display:grid; grid-template-columns:repeat(3, 1fr); gap:80px 40px; justify-items:center; }
+  .tier { display:flex; flex-direction:column; align-items:center; gap:16px; }
+
+  /* ICON SQUARE: size is --icon (top of file). Space around the icon is the padding. */
+  .icon {
+    width:var(--icon); height:var(--icon); border:1px solid var(--ink);
+    padding:22px;                       /* raise to make icons smaller inside the square */
+    background-color:#fff;
+    background-origin:content-box;      /* keeps the icon inside the padding */
+    background-position:center;
+    background-repeat:no-repeat;
+    background-size:contain;
+    transition:opacity .15s;
+  }
+  .tier:hover .icon { opacity:.85; }
+  .tier .name { font-size:17px; }
+  .tier .price { font-size:14px; color:var(--soft); margin-top:-10px; }
+
+  /* overlay */
+  #overlay {
+    position:fixed; inset:0; background:rgba(255,255,255,.96);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+    animation: fade .2s ease;
+  }
+  @keyframes fade { from { opacity:0 } to { opacity:1 } }
+  .sheet { display:flex; flex-direction:column; align-items:center; gap:24px; width:240px; }
+  #ov-title { font-size:20px; }
+  .qr { width:240px; height:240px; border:1px solid var(--ink); background:#fff center / contain no-repeat; }
+  .or { display:flex; align-items:center; gap:14px; width:100%; color:var(--soft); font-size:14px; }
+  .or::before, .or::after { content:""; flex:1; height:1px; background:var(--dot); }
+  .pay {
+    display:block; width:100%; padding:14px 0; text-align:center; text-decoration:none;
+    background:var(--blue); color:#fff; border-radius:0; font-size:16px; letter-spacing:.02em;
+    transition:background .15s;
+  }
+  .pay:hover { background:#1640d6; }
+
+  @media (max-width:640px) {
+    :root { --icon:80px; }
+    .icon { padding:18px; }
+    .tiers { grid-template-columns:repeat(2, 1fr); gap:56px 24px; }
+    h1 { margin:56px 0 64px; font-size:26px; }
+  }
+</style>
+</head>
+<body>
+  <main>
+    <!-- STEP 1 BACK BUTTON: returns to the homepage. Change href if your homepage file is named differently. -->
+    <a class="soft" href="index.html">← go back</a>
+
+    <h1>buy me a coffee</h1>
+
+    <div class="tiers">
+
+      <!-- ═════════ TIER 1: ₹10 · a chai ═════════
+           ICON:     change the file name in style="..."
+           QR IMAGE: change data-qr (your UPI QR for ₹10)
+           PAY LINK: change data-link (UPI link or payment URL) -->
+      <button class="tier" data-title="a chai · ₹10"
+              data-qr="10qr.png"
+              data-link="upi://pay?pa=ranger-deepan@fam&am=10&cu=INR">
+        <span class="icon" style="background-image:url('1chai.png')"></span>
+        <span class="name">1 chai</span><span class="price">₹10</span>
+      </button>
+
+      <!-- ═════════ TIER 2: ₹20 · 2 chai ═════════
+           ICON · QR (data-qr) · PAY LINK (data-link) -->
+      <button class="tier" data-title="2 chai · ₹20"
+              data-qr="20qr.png"
+              data-link="upi://pay?pa=ranger-deepan@fam&am=20&cu=INR">
+        <span class="icon" style="background-image:url('2chai.png')"></span>
+        <span class="name">2 chai</span><span class="price">₹20</span>
+      </button>
+
+      <!-- ═════════ TIER 3: ₹50 · a coffee ═════════
+           ICON · QR (data-qr) · PAY LINK (data-link) -->
+      <button class="tier" data-title="a coffee · ₹50"
+              data-qr="50qr.png"
+              data-link="upi://pay?pa=ranger-deepan@fam&am=50&cu=INR">
+        <span class="icon" style="background-image:url('icons8-coffee-cup-64.png')"></span>
+        <span class="name">a coffee</span><span class="price">₹50</span>
+      </button>
+
+      <!-- ═════════ TIER 4: ₹100 · an americano ═════════
+           ICON · QR (data-qr) · PAY LINK (data-link) -->
+      <button class="tier" data-title="an americano · ₹100"
+              data-qr="100qr.png"
+              data-link="upi://pay?pa=ranger-deepan@fam&am=100&cu=INR">
+        <span class="icon" style="background-image:url('icons8-coffee-100.png')"></span>
+        <span class="name">an americano</span><span class="price">₹100</span>
+      </button>
+
+      <!-- ═════════ TIER 5: ₹200 · a cortado ═════════
+           ICON · QR (data-qr) · PAY LINK (data-link) -->
+      <button class="tier" data-title="a cortado · ₹200"
+              data-qr="200qr.png"
+              data-link="upi://pay?pa=ranger-deepan@fam&am=200&cu=INR">
+        <span class="icon" style="background-image:url('icons8-coffee-96.png')"></span>
+        <span class="name">a cortado</span><span class="price">₹200</span>
+      </button>
+
+      <!-- ═════════ TIER 6: ₹300 · a dirty matcha ═════════
+           ICON · QR (data-qr) · PAY LINK (data-link) -->
+      <button class="tier" data-title="a dirty matcha · ₹300"
+              data-qr="300qr.png"
+              data-link="upi://pay?pa=ranger-deepan@fam&am=300&cu=INR">
+        <span class="icon" style="background-image:url('icons8-matcha-96.png')"></span>
+        <span class="name">a dirty matcha</span><span class="price">₹300</span>
+      </button>
+
+    </div>
+  </main>
+
+  <!-- OVERLAY (opens when a tier is clicked; QR and link come from that tier's data-qr / data-link) -->
+  <div id="overlay" hidden role="dialog" aria-modal="true">
+    <div class="sheet">
+      <p id="ov-title"></p>
+      <div class="qr" id="ov-qr"></div>
+      <span class="or">or</span>
+      <a class="pay" id="ov-pay" href="#">Click to pay</a>
+      <!-- STEP 2 BACK BUTTON: closes the overlay, back to the tiers -->
+      <button class="soft" id="ov-back">← go back</button>
+    </div>
+  </div>
+
+<script>
+  const overlay = document.getElementById('overlay');
+  const close = () => overlay.hidden = true;
+
+  document.querySelectorAll('.tier').forEach(t => t.addEventListener('click', () => {
+    document.getElementById('ov-title').textContent = t.dataset.title;
+    document.getElementById('ov-qr').style.backgroundImage = `url('${t.dataset.qr}')`;
+    document.getElementById('ov-pay').href = t.dataset.link;
+    overlay.hidden = false;
+  }));
+
+  document.getElementById('ov-back').addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+</script>
+</body>
+</html>

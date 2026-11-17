@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canvas</title>
+<style>
+  :root {
+    --grid: 40px;            /* one dot-grid cell */
+    --sq: 160px;             /* one "square" = 4 cells */
+    --dot: #c4c4c4;
+    --ink: #1a1a1a;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; overflow: hidden; background: #fff; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    color: var(--ink);
+    background-image: radial-gradient(circle, var(--dot) 1.4px, transparent 1.6px);
+    background-size: var(--grid) var(--grid);
+    cursor: grab;
+    touch-action: none;
+    user-select: none; -webkit-user-select: none;
+  }
+  body.panning { cursor: grabbing; }
+
+  #world {
+    position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+    transform: translate(var(--x, 0px), var(--y, 0px));
+  }
+  .block { position: absolute; left: 0; top: 0; cursor: grab; will-change: transform; }
+  .block.dragging { cursor: grabbing; z-index: 10; }
+
+  /* ───────── PER-BLOCK STYLES (edit each block on its own) ───────── */
+
+  /* TEXT BLOCK: width, font sizes */
+  #text { width: calc(var(--sq) * 2 + var(--grid)); }
+  #text h1 { font-size: 28px; font-weight: 400; line-height: 40px; }
+  #text p  { font-size: 16px; line-height: 20px; margin-top: 20px; }
+
+  /* VIDEO BLOCK: width (height follows the video's aspect ratio) */
+  #video video {
+    width: calc(var(--sq) * 2 + var(--grid));
+    aspect-ratio: 496 / 368;
+    display: block; background: #eee;
+  }
+
+  /* IMAGE BUTTONS: shared look. Size/border of one button can be overridden
+     by its id, e.g.  #btn2 { border-color: red; }  */
+  a.block {
+    width: var(--sq); height: var(--sq);
+    border: 1px solid var(--ink); background: #fff center / cover no-repeat;
+    display: block; transition: opacity .15s;
+  }
+  a.block:hover { opacity: .88; }
+  a.block:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+
+  @media (max-width: 860px) {
+    :root { --sq: 80px; --grid: 20px; }
+    #text h1 { font-size: 22px; line-height: 20px; }
+  }
+</style>
+</head>
+<body>
+  <main id="world">
+
+    <!-- ═════════ BLOCK 1: TEXT ═════════
+         Edit the heading and paragraph below. -->
+    <section class="block" id="text">
+      <h1>Fragments of my Life (recent)</h1>
+      <p>Hi I'm Jay! (Deepan) / These are some things I found recently (and liked) / It's intentionally limited because I'm a terrible curator :') / You can drag anything around the canvas (including the canvas itself) / Everything here sits on the canvas, and there's plenty of room to breathe /
+        My linktree is third from the left, and
+        you can buy me a coffee too, from down-right:) 
+      </p>
+    </section>
+
+    <!-- ═════════ BLOCK 2: VIDEO ═════════
+         VIDEO FILE: change src="video.mp4" to your file name. -->
+    <div class="block" id="video">
+      <video src="video.mp4" autoplay muted loop playsinline controls></video>
+    </div>
+
+    <!-- ═════════ BLOCK 3: BUTTON 1 ═════════
+         LINK:  replace href="#" with your URL.
+         IMAGE: replace image-1.jpg with your file name (put files in an /images folder). -->
+    <a class="block" id="btn1" href="https://archive.org/download/jean-luc-godard-the-complete-filmography/Breathless%20%281960%29%20%5BBluRay%5D%20%5B1080p%5D%20%5BYTS.LT%5D/"
+       style="background-image: url('aboutdesouffle.jpg')"
+       draggable="false" aria-label="Link 1"></a>
+
+    <!-- ═════════ BLOCK 4: BUTTON 2 ═════════
+         LINK:  replace href="#" with your URL.
+         IMAGE: replace image-2.jpg with your file name. -->
+    <a class="block" id="btn2" href="https://open.spotify.com/album/2kxWdAN5jIbHnnJ9VhJYqg?si=PBWXsKVSSHuUCy7wg_fmCQ"
+       style="background-image: url('wavenotation.jpg')"
+       draggable="false" aria-label="Link 2"></a>
+
+    <!-- ═════════ BLOCK 5: BUTTON 3 ═════════
+         LINK:  replace href="#" with your URL.
+         IMAGE: replace image-3.jpg with your file name. -->
+    <a class="block" id="btn3" href="https://linktr.ee/espressonaut"
+       style="background-image: url('linktree.jpg')"
+       draggable="false" aria-label="Link 3"></a>
+
+    <!-- ═════════ BLOCK 6: BUTTON 4 (bottom right) ═════════
+         Intentionally left empty: no image, no link yet.
+         To use it later, add href and style="background-image: url('images/...')" like the blocks above. -->
+    <a class="block" id="btn4" href="coffee.html" style="background-image: url('chrome-capture-2026-11-17.png')"draggable="false" aria-label="Buy me a coffee"></a>
+
+  </main>
+
+<script>
+  const world  = document.getElementById('world');
+  const blocks = [...document.querySelectorAll('.block')];
+  const css = v => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(v));
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  /* LIMITS (px)
+     KEEP_VISIBLE: when panning, at least this much of the content stays on screen,
+                   so you can never scroll everything out of view.
+     AREA: the region blocks can be dragged within (around the centre). */
+  const KEEP_VISIBLE = 160;
+  const AREA = { x: 900, y: 600 };
+
+  let px = 0, py = 0;                            // canvas pan
+
+  function setBlock(el, x, y) {
+    x = clamp(x, -AREA.x, AREA.x - el.offsetWidth);
+    y = clamp(y, -AREA.y, AREA.y - el.offsetHeight);
+    el._x = x; el._y = y;
+    el.style.transform = `translate(${x}px, ${y}px)`;
+  }
+
+  function bounds() {                            // box around all blocks
+    let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+    for (const b of blocks) {
+      minX = Math.min(minX, b._x);              maxX = Math.max(maxX, b._x + b.offsetWidth);
+      minY = Math.min(minY, b._y);              maxY = Math.max(maxY, b._y + b.offsetHeight);
+    }
+    return { minX, minY, maxX, maxY };
+  }
+
+  function applyPan() {
+    const b = bounds(), cx = innerWidth / 2, cy = innerHeight / 2, K = KEEP_VISIBLE;
+    px = clamp(px, K - cx - b.maxX, innerWidth  - K - cx - b.minX);
+    py = clamp(py, K - cy - b.maxY, innerHeight - K - cy - b.minY);
+    world.style.setProperty('--x', px + 'px');
+    world.style.setProperty('--y', py + 'px');
+    const g = css('--grid');
+    document.body.style.backgroundPosition = `${px % g}px ${py % g}px`;
+  }
+
+  /* STARTING LAYOUT: text left, video right, 4 squares below.
+     Text lines up with the first square, video with the last. */
+  function layout() {
+    const S = css('--sq'), G = css('--grid');
+    const [text, video, ...btns] = blocks;
+    const w  = 2 * S + G;                        // text & video width
+    const vh = w * 368 / 496;                    // video height
+    const left = -(4 * S + 3 * G) / 2;           // left edge of the row
+    const total = vh + 2 * G + S;
+    const top = -total / 2;
+    setBlock(text,  left, top + (vh - text.offsetHeight) / 2);
+    setBlock(video, left + w + G, top);
+    btns.forEach((b, i) => setBlock(b, left + i * (S + G), top + vh + 2 * G));
+  }
+
+  // ── dragging: blocks move themselves, background pans the canvas ──
+  let drag = null, moved = false;
+
+  addEventListener('pointerdown', e => {
+    const el = e.target.closest('.block');
+    if (el && el.id === 'video') {               // bottom strip stays native controls
+      if (e.clientY > el.getBoundingClientRect().bottom - 48) return;
+    }
+    drag = { el, sx: e.clientX, sy: e.clientY,
+             ox: el ? el._x : px, oy: el ? el._y : py };
+    moved = false;
+    if (el) el.classList.add('dragging'); else document.body.classList.add('panning');
+  });
+
+  addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
+    if (!moved) return;
+    if (drag.el) setBlock(drag.el, drag.ox + dx, drag.oy + dy);
+    else { px = drag.ox + dx; py = drag.oy + dy; applyPan(); }
+  });
+
+  function end() {
+    if (!drag) return;
+    if (drag.el) {                               // snap to half-grid on drop
+      const h = css('--grid') / 2;
+      setBlock(drag.el, Math.round(drag.el._x / h) * h, Math.round(drag.el._y / h) * h);
+      drag.el.classList.remove('dragging');
+      applyPan();
+    }
+    document.body.classList.remove('panning');
+    drag = null;
+  }
+  addEventListener('pointerup', end);
+  addEventListener('pointercancel', end);
+
+  addEventListener('click', e => { if (moved && e.target.closest('a')) e.preventDefault(); }, true);
+  addEventListener('wheel', e => { e.preventDefault(); px -= e.deltaX; py -= e.deltaY; applyPan(); }, { passive: false });
+  addEventListener('resize', applyPan);
+
+  layout(); applyPan();
+</script>
+</body>
+</html>
